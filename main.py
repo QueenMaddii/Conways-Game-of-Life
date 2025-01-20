@@ -3,6 +3,7 @@ import sys
 import threading
 import tkinter as tk
 from tkinter import messagebox
+import re
 
 import pygame
 import requests
@@ -28,9 +29,6 @@ CELL_BORDER_COLOUR = (50, 50, 50)
 evaluating = False
 
 cell_manager = {}
-
-
-# Initialize screen
 
 
 def draw_grid(screen):
@@ -186,7 +184,11 @@ TEN_ENGINE_CORDERSHIP = [(0, 42), (1, 42), (2, 44), (2, 50), (3, 43), (3, 50), (
                          (87, 32)]
 
 
+
 def get_pattern(url):
+    if not re.fullmatch(r"https://conwaylife\.com/patterns/[a-zA-Z0-9\-]+\.cells", url):
+        print("Invalid url")
+        return
     response = requests.get(url)
     if response.status_code == 200:
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -214,7 +216,7 @@ def edit_grid(screen):
     shape_index = 0
     shapes = ["square", "circle", "gun", "64P2H1V0", "lobster", "sir_robin", "2_engine_cordership",
               "10_engine_cordership"]
-    size = 1
+    size = 0
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT or event.type == pygame.KEYDOWN and event.key == pygame.K_q:
@@ -262,6 +264,7 @@ def set_cells(pos, state, brush_size=0, brush_shape="square"):
     row = y // CELL_SIZE
     affected_cells = []
 
+    # TODO Generalise
     if brush_shape == "gun":
         affected_cells = [(col + dx, row + dy) for dx, dy in GOSPER_GLIDER_GUN]
     elif brush_shape == "64P2H1V0":
@@ -275,18 +278,15 @@ def set_cells(pos, state, brush_size=0, brush_shape="square"):
     elif brush_shape == "10_engine_cordership":
         affected_cells = [(col + dx, row + dy) for dx, dy in TEN_ENGINE_CORDERSHIP]
     elif brush_shape == "square":
-        # Square brush
         for dx in range(-brush_size, brush_size + 1):
             for dy in range(-brush_size, brush_size + 1):
                 affected_cells.append((col + dx, row + dy))
     elif brush_shape == "circle":
-        # Circular brush
         for dx in range(-brush_size, brush_size + 1):
             for dy in range(-brush_size, brush_size + 1):
                 if dx ** 2 + dy ** 2 <= brush_size ** 2:
                     affected_cells.append((col + dx, row + dy))
-
-    # Apply the state to affected cells
+                    
     for c, r in affected_cells:
         if 0 <= c < COLS and 0 <= r < ROWS:
             if state == -1:
